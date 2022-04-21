@@ -1,2 +1,2 @@
 # session-buntdb
-Chefs.go default buntdb driver.
+Chefs.go buntdb session driver.
