@@ -1,7 +1,6 @@
 package session_buntdb
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path"
@@ -111,9 +110,7 @@ func (connect *buntdbSessionConnect) Read(key string) (Map, error) {
 	}
 
 	value := Map{}
-	//待优化，换成统一的JSON解析
-	// err = chef.JsonDecode([]byte(realVal), &value)
-	err = json.Unmarshal([]byte(realVal), &value)
+	err = chef.JSONUnmarshal([]byte(realVal), &value)
 	if err != nil {
 		return nil, nil
 	}
@@ -127,9 +124,7 @@ func (connect *buntdbSessionConnect) Write(key string, val Map, expiry time.Dura
 		return errInvalidDatabase
 	}
 
-	//待优化，换成统一的JSON解析
-	// bytes, err := chef.JsonEncode(val)
-	bytes, err := json.Marshal(val)
+	bytes, err := chef.JSONMarshal(val)
 	if err != nil {
 		return err
 	}
