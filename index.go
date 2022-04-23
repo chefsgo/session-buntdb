@@ -1,19 +1,17 @@
 package session_buntdb
 
 import (
-	"github.com/chefsgo/chef"
+	"github.com/chefsgo/session"
 )
 
-func Driver(ss ...string) chef.SessionDriver {
+func Driver(ss ...string) session.Driver {
 	store := ":memory:"
 	if len(ss) > 0 {
 		store = ss[0]
 	}
-	return &buntdbSessionDriver{store}
+	return &buntdbDriver{store}
 }
 
 func init() {
-	// chef.Register("memory", Driver(":memory:"))
-	chef.Register("buntdb", Driver("store/session.db"))
-	// chef.Register("file", Driver("store/session.db"))
+	session.Register("buntdb", Driver("store/session.db"))
 }

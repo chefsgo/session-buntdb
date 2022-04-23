@@ -8,7 +8,8 @@ import (
 	"time"
 
 	. "github.com/chefsgo/base"
-	"github.com/chefsgo/chef"
+	"github.com/chefsgo/codec"
+	"github.com/chefsgo/session"
 	"github.com/tidwall/buntdb"
 )
 
@@ -18,31 +19,31 @@ var (
 )
 
 type (
-	buntdbSessionDriver struct {
+	buntdbDriver struct {
 		store string
 	}
-	buntdbSessionConnect struct {
+	buntdbConnect struct {
 		mutex sync.RWMutex
 
 		name    string
-		config  chef.SessionConfig
-		setting buntdbSessionSetting
+		config  session.Config
+		setting buntdbSetting
 
 		db *buntdb.DB
 	}
-	buntdbSessionSetting struct {
+	buntdbSetting struct {
 		Store  string
 		Expiry time.Duration
 	}
-	buntdbSessionValue struct {
+	buntdbValue struct {
 		Value Any `json:"value"`
 	}
 )
 
 //连接
-func (driver *buntdbSessionDriver) Connect(name string, config chef.SessionConfig) (chef.SessionConnect, error) {
+func (driver *buntdbDriver) Connect(name string, config session.Config) (session.Connect, error) {
 	//获取配置信息
-	setting := buntdbSessionSetting{
+	setting := buntdbSetting{
 		Store: driver.store,
 	}
 
@@ -61,13 +62,13 @@ func (driver *buntdbSessionDriver) Connect(name string, config chef.SessionConfi
 		os.MkdirAll(dir, 0700)
 	}
 
-	return &buntdbSessionConnect{
+	return &buntdbConnect{
 		name: name, config: config, setting: setting,
 	}, nil
 }
 
 //打开连接
-func (connect *buntdbSessionConnect) Open() error {
+func (connect *buntdbConnect) Open() error {
 	if connect.setting.Store == "" {
 		return errInvalidStore
 	}
@@ -80,7 +81,7 @@ func (connect *buntdbSessionConnect) Open() error {
 }
 
 //关闭连接
-func (connect *buntdbSessionConnect) Close() error {
+func (connect *buntdbConnect) Close() error {
 	if connect.db != nil {
 		if err := connect.db.Close(); err != nil {
 			return err
@@ -90,7 +91,7 @@ func (connect *buntdbSessionConnect) Close() error {
 }
 
 //查询缓存，
-func (connect *buntdbSessionConnect) Read(key string) (Map, error) {
+func (connect *buntdbConnect) Read(key string) (Map, error) {
 	if connect.db == nil {
 		return nil, errInvalidDatabase
 	}
@@ -110,7 +111,7 @@ func (connect *buntdbSessionConnect) Read(key string) (Map, error) {
 	}
 
 	value := Map{}
-	err = chef.JSONUnmarshal([]byte(realVal), &value)
+	err = codec.UnmarshalJSON([]byte(realVal), &value)
 	if err != nil {
 		return nil, nil
 	}
@@ -119,12 +120,12 @@ func (connect *buntdbSessionConnect) Read(key string) (Map, error) {
 }
 
 //更新缓存
-func (connect *buntdbSessionConnect) Write(key string, val Map, expiry time.Duration) error {
+func (connect *buntdbConnect) Write(key string, val Map, expiry time.Duration) error {
 	if connect.db == nil {
 		return errInvalidDatabase
 	}
 
-	bytes, err := chef.JSONMarshal(val)
+	bytes, err := codec.MarshalJSON(val)
 	if err != nil {
 		return err
 	}
@@ -143,7 +144,7 @@ func (connect *buntdbSessionConnect) Write(key string, val Map, expiry time.Dura
 }
 
 //删除缓存
-func (connect *buntdbSessionConnect) Delete(key string) error {
+func (connect *buntdbConnect) Delete(key string) error {
 	if connect.db == nil {
 		return errInvalidDatabase
 	}
@@ -154,14 +155,14 @@ func (connect *buntdbSessionConnect) Delete(key string) error {
 	})
 }
 
-func (connect *buntdbSessionConnect) Clear(prefix string) error {
+func (connect *buntdbConnect) Clear(prefix string) error {
 	if connect.db == nil {
 		return errInvalidDatabase
 	}
 
 	return connect.db.Update(func(tx *buntdb.Tx) error {
 		keys := make([]string, 0)
-		err := tx.AscendKeys("prefix", func(key, value string) bool {
+		err := tx.AscendKeys(prefix, func(key, value string) bool {
 			keys = append(keys, key)
 			return true
 		})
