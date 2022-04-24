@@ -8,7 +8,7 @@ import (
 	"time"
 
 	. "github.com/chefsgo/base"
-	"github.com/chefsgo/codec"
+	"github.com/chefsgo/chef"
 	"github.com/chefsgo/session"
 	"github.com/tidwall/buntdb"
 )
@@ -111,7 +111,7 @@ func (connect *buntdbConnect) Read(key string) (Map, error) {
 	}
 
 	value := Map{}
-	err = codec.UnmarshalJSON([]byte(realVal), &value)
+	err = chef.UnmarshalJSON([]byte(realVal), &value)
 	if err != nil {
 		return nil, nil
 	}
@@ -125,7 +125,7 @@ func (connect *buntdbConnect) Write(key string, val Map, expiry time.Duration) e
 		return errInvalidDatabase
 	}
 
-	bytes, err := codec.MarshalJSON(val)
+	bytes, err := chef.MarshalJSON(val)
 	if err != nil {
 		return err
 	}
